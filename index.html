@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Happy Birthday!</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        overflow: hidden;
+        background: #000;
+        font-family: "Georgia", serif;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 50% 50%, #2d1b4e, #0a0015);
+        animation: bgPulse 4s infinite alternate;
+        transition: filter 1.5s ease;
+      }
+
+      body.blur-bg .background {
+        filter: blur(25px) brightness(0.4);
+      }
+
+      @keyframes bgPulse {
+        0% {
+          filter: brightness(1);
+        }
+        100% {
+          filter: brightness(1.5);
+        }
+      }
+
+      canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1;
+        transition: filter 1.5s ease;
+      }
+
+      body.blur-bg canvas {
+        filter: blur(20px) brightness(0.3);
+      }
+
+      .container {
+        position: relative;
+        z-index: 100;
+      }
+
+      .envelope-wrapper {
+        position: relative;
+        width: 500px;
+        height: 320px;
+        cursor: pointer;
+        transition: transform 0.4s ease;
+      }
+
+      .envelope-wrapper:hover:not(.opened) {
+        transform: scale(1.1);
+      }
+
+      .envelope-wrapper.opened {
+        cursor: default;
+      }
+
+      /* Envelope back - visible initially */
+      .env-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #c92a2a, #e03131);
+        border-radius: 10px;
+        box-shadow: 0 25px 70px rgba(201, 42, 42, 0.5);
+        z-index: 20;
+      }
+
+      /* Envelope flap - the triangle on top */
+      .env-flap {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 0;
+        border-left: 250px solid transparent;
+        border-right: 250px solid transparent;
+        border-top: 160px solid #fa5252;
+        transform-origin: top center;
+        z-index: 30;
+        transition: transform 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        filter: drop-shadow(0 20px 50px rgba(0, 0, 0, 0.6));
+      }
+
+      .envelope-wrapper.opened .env-flap {
+        transform: rotateX(-180deg);
+      }
+
+      /* The letter - HIDDEN initially! */
+      .letter {
+        position: absolute;
+        width: 420px;
+        height: 240px;
+        background: #fef9e7;
+        border-radius: 8px;
+        top: 50px;
+        left: 40px;
+        z-index: 5; /* CHANGED FROM 10 to 5 - UNDER envelope when closed */
+        transform-style: preserve-3d;
+        transition: all 2.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        /* HIDDEN INITIALLY */
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      .envelope-wrapper.opened .letter {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) !important;
+        width: 800px;
+        height: 650px;
+        z-index: 5000; /* VERY HIGH when opened */
+        box-shadow: 0 60px 200px rgba(250, 82, 82, 0.9);
+        opacity: 1;
+      }
+
+      /* Folded parts of the letter */
+      .letter-fold {
+        position: absolute;
+        width: 100%;
+        height: 50%;
+        background: linear-gradient(to bottom, #fef9e7, #fdebd0);
+        backface-visibility: hidden;
+        transition: transform 2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        transition-delay: 1.5s;
+        z-index: 11;
+      }
+
+      .fold-top {
+        top: 0;
+        border-radius: 8px 8px 0 0;
+        transform-origin: bottom center;
+      }
+
+      .fold-bottom {
+        bottom: 0;
+        border-radius: 0 0 8px 8px;
+        transform-origin: top center;
+      }
+
+      .envelope-wrapper.opened .fold-top {
+        transform: rotateX(-180deg);
+      }
+
+      .envelope-wrapper.opened .fold-bottom {
+        transform: rotateX(180deg);
+      }
+
+      /* The actual message content */
+      .letter-content {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        padding: 70px 60px;
+        opacity: 0;
+        z-index: 5;
+        overflow-y: auto;
+        transition: opacity 1.5s ease;
+        transition-delay: 3.5s;
+      }
+
+      .envelope-wrapper.opened .letter-content {
+        opacity: 1;
+      }
+
+      .letter-content h1 {
+        font-size: 56px;
+        text-align: center;
+        margin-bottom: 40px;
+        background: linear-gradient(
+          90deg,
+          #ff6b9d,
+          #feca57,
+          #48dbfb,
+          #ff6b9d,
+          #feca57
+        );
+        background-size: 300% 300%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: rainbow 5s linear infinite;
+        font-family: "Brush Script MT", cursive;
+        font-weight: bold;
+      }
+
+      @keyframes rainbow {
+        0% {
+          background-position: 0% 50%;
+        }
+        100% {
+          background-position: 300% 50%;
+        }
+      }
+
+      .letter-content p {
+        color: #1a1a1a;
+        line-height: 2.4;
+        margin-bottom: 24px;
+        font-size: 20px;
+        text-align: justify;
+      }
+
+      .signature {
+        margin-top: 50px;
+        text-align: right;
+        font-style: italic;
+        color: #c92a2a;
+        font-size: 26px;
+        font-family: "Brush Script MT", cursive;
+      }
+
+      .hint {
+        position: absolute;
+        bottom: -90px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #fff;
+        font-size: 28px;
+        text-shadow: 0 0 40px #ff6b9d, 0 0 80px #ff6b9d;
+        animation: floatHint 2.8s infinite;
+        white-space: nowrap;
+        opacity: 1;
+        transition: opacity 0.6s;
+      }
+
+      .envelope-wrapper.opened .hint {
+        opacity: 0;
+      }
+
+      @keyframes floatHint {
+        0%,
+        100% {
+          transform: translateX(-50%) translateY(0);
+        }
+        50% {
+          transform: translateX(-50%) translateY(-18px);
+        }
+      }
+
+      .sparkle {
+        position: fixed;
+        width: 8px;
+        height: 8px;
+        background: #fff;
+        border-radius: 50%;
+        box-shadow: 0 0 15px #fff, 0 0 30px #fff;
+        pointer-events: none;
+        animation: sparkleAnim 1.5s forwards;
+        z-index: 10000;
+      }
+
+      @keyframes sparkleAnim {
+        0% {
+          transform: scale(0) rotate(0deg);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(3) rotate(540deg);
+          opacity: 0;
+        }
+      }
+
+      .emoji-float {
+        position: fixed;
+        font-size: 50px;
+        pointer-events: none;
+        animation: emojiFloat 3s forwards;
+        z-index: 10000;
+      }
+
+      @keyframes emojiFloat {
+        0% {
+          transform: translateY(0) scale(0) rotate(0deg);
+          opacity: 1;
+        }
+        60% {
+          transform: translateY(-120px) scale(1.5) rotate(360deg);
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(-200px) scale(0.3) rotate(720deg);
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="background"></div>
+    <canvas id="fireworks"></canvas>
+    <canvas id="hearts"></canvas>
+
+    <div class="container">
+      <div class="envelope-wrapper" id="envWrap">
+        <div class="env-back"></div>
+
+        <!-- Letter is HIDDEN inside envelope initially -->
+        <div class="letter">
+          <div class="letter-fold fold-top"></div>
+          <div class="letter-fold fold-bottom"></div>
+
+          <div class="letter-content">
+            <h1>✨ HAPPY BIRTHDAY ✨</h1>
+            <p>
+              happyyyy birthdaaaaay a ziiin kmlti 21 3am sf wliti dyal zwaj hhh
+              , inshallah tkon hiba li 3ndha 22ans a7sn version mn rask o tdiri
+              lii bghiti o tkoni manadma 3la walo o shada tri9 l9dam o mshl 3lik
+              lah,3ndk db 22 wlkn ana knt m3ak mli kant 3ndk 18 ans , shftk
+              katkbri 9dami o kanshofk kat achievi lgoals dyawlk li 7titi o
+              shftk katbdli lmzyan fga3 nawa7i , tfkri tfkri mli kant 3ndk 17
+              ans wnti f lbac wgalsa kat7lmi diri dkshi li rak nti fih db, wakha
+              dwzti mr7ala s3iba f had lkhr dl3am but its all a part of the
+              proccess o b3da rak kat3ani fwa7d lblassa li knti bagha mashi
+              shyratk l7ayat fshi 9nt akhor , so nbghi nshofk flblays li nti
+              bagha tkoni fihom wnshofk ghada lfo9 lfo9 o nbghi nkon tana a part
+              of your succes o ankon your right hand n3awnk bga3 toro9 lmomkina.</p>
+
+              <p>im sorry 7it maghatwslk tashi7aja had l3am but nbghi had lettre
+              twslk l9lbk , o maghatkonsh ka ay birthday lettre ngol happy
+              birthday wsf , bghit nhdr ta 3la dkshi li dwzna bjoj had l3am
+              first thing khsk t3rfi bli i love you more than nfs had lw9t l3am
+              lifat and ill still love you more fb7al had lw9t l3am jay lab9ina
+              7yin inshallah , had l3am kan aktr 3am shftk fih o khrjt m3ak o
+              d9t makltk hhh , shft fik bzaf dyal l7wayj limakntsh shfthom deja
+              7it khrjna gha joj mrat , shftk ka personne irl o kirak dayra o
+              kifash kathdri o shno homa l3adat dyawlk li katdiri fash kathdri ,
+              o dok l3ibat likatdiri fyour daily life wga3 had les details sghar
+              shfthom o zdt 3rftk ka bnt ktr wktr , dwzna aw9at zwinin bzaf
+              wakha ra 9laaaal bzf bzf mais drt m3ak bzaf dyal memories li
+              ayb9aw liya dima frassi o dima anb9a nrj3 lihom mli ntfkrk , kima
+              kan 3am drna fih bzf dyal l7wayj zwinin mais kano bzaf dyal l7wayj
+              li khybin , kna kanfkro f breakup mashi mra mashi joj o kant f
+              simana w7da , 3mrha trat f 3amayn wns , but hdshi kiw93 o nfkrk
+              wnfkr rassi its me and you vs the problem mashi me vs you , o ana
+              makntsh mzyan had l3am hada la m3ak la m3a rassi o im sorry , mais
+              inshallah hdshi maghayt3awdsh o bghit nb9a m3ak nti wbghit mli
+              nfi9 mn n3as nl9ak nti o mli nkon f dar bghit tkoni nti fiha , o
+              mli n3s tkoni nti li 7daya , o mli nakl bghitk tkoni nti li 7daya
+              bkholaaasa bitk nti wakha tban lik shi mra bli kan3amlk khyb wla
+              idc rah its not true at all , o safi ra twlt bzaf hhh baraka 3lik
+              kanbghiiik a hiba
+            </p>
+            <div class="signature">
+              With all my love,<br />Yasser💕
+            </div>
+          </div>
+        </div>
+
+        <div class="env-flap"></div>
+
+        <div class="hint">💌 Click to Open Your Surprise 💌</div>
+      </div>
+    </div>
+
+    <script>
+      // Get canvas elements
+      const fw = document.getElementById("fireworks");
+      const ht = document.getElementById("hearts");
+      const fwCtx = fw.getContext("2d");
+      const htCtx = ht.getContext("2d");
+
+      // Set canvas dimensions
+      fw.width = window.innerWidth;
+      fw.height = window.innerHeight;
+      ht.width = window.innerWidth;
+      ht.height = window.innerHeight;
+
+      // Variables
+      let fireworks = [];
+      let particles = [];
+      let hearts = [];
+      let isOpen = false;
+      let fireworkInterval;
+      let heartInterval;
+
+      // Firework class
+      class Firework {
+        constructor(x, y) {
+          this.x = x;
+          this.y = y;
+          this.target = Math.random() * window.innerHeight * 0.3;
+          this.speed = 7;
+          this.boom = false;
+          this.hue = Math.random() * 360;
+        }
+
+        update() {
+          if (!this.boom) {
+            this.y -= this.speed;
+            if (this.y <= this.target) {
+              this.explode();
+              this.boom = true;
+            }
+          }
+        }
+
+        draw() {
+          if (!this.boom) {
+            fwCtx.beginPath();
+            fwCtx.arc(this.x, this.y, 5, 0, Math.PI * 2);
+            fwCtx.fillStyle = `hsl(${this.hue}, 100%, 60%)`;
+            fwCtx.shadowBlur = 15;
+            fwCtx.shadowColor = `hsl(${this.hue}, 100%, 60%)`;
+            fwCtx.fill();
+          }
+        }
+
+        explode() {
+          for (let i = 0; i < 80; i++) {
+            particles.push(new Particle(this.x, this.y, this.hue));
+          }
+        }
+      }
+
+      // Particle class
+      class Particle {
+        constructor(x, y, hue) {
+          this.x = x;
+          this.y = y;
+          this.hue = hue + Math.random() * 80 - 40;
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 8 + 3;
+          this.vx = Math.cos(angle) * speed;
+          this.vy = Math.sin(angle) * speed;
+          this.alpha = 1;
+          this.decay = Math.random() * 0.018 + 0.012;
+          this.size = Math.random() * 5 + 2;
+        }
+
+        update() {
+          this.vx *= 0.95;
+          this.vy *= 0.95;
+          this.vy += 0.2;
+          this.x += this.vx;
+          this.y += this.vy;
+          this.alpha -= this.decay;
+        }
+
+        draw() {
+          fwCtx.save();
+          fwCtx.globalAlpha = this.alpha;
+          fwCtx.beginPath();
+          fwCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          fwCtx.fillStyle = `hsl(${this.hue}, 100%, 60%)`;
+          fwCtx.shadowBlur = 12;
+          fwCtx.shadowColor = `hsl(${this.hue}, 100%, 60%)`;
+          fwCtx.fill();
+          fwCtx.restore();
+        }
+      }
+
+      // Heart class
+      class Heart {
+        constructor() {
+          this.x = Math.random() * window.innerWidth;
+          this.y = window.innerHeight + 100;
+          this.size = Math.random() * 30 + 25;
+          this.speed = Math.random() * 3 + 2;
+          this.wobble = Math.random() * Math.PI * 2;
+          this.wobbleSpeed = Math.random() * 0.07 + 0.04;
+          this.hue = Math.random() * 50 + 315;
+          this.alpha = Math.random() * 0.7 + 0.3;
+        }
+
+        update() {
+          this.y -= this.speed;
+          this.wobble += this.wobbleSpeed;
+          this.x += Math.sin(this.wobble) * 3;
+        }
+
+        draw() {
+          htCtx.save();
+          htCtx.globalAlpha = this.alpha;
+          htCtx.fillStyle = `hsl(${this.hue}, 100%, 65%)`;
+          htCtx.shadowBlur = 20;
+          htCtx.shadowColor = `hsl(${this.hue}, 100%, 50%)`;
+          htCtx.translate(this.x, this.y);
+          htCtx.scale(this.size / 20, this.size / 20);
+
+          htCtx.beginPath();
+          htCtx.moveTo(0, 0);
+          htCtx.bezierCurveTo(-10, -10, -20, 0, 0, 15);
+          htCtx.bezierCurveTo(20, 0, 10, -10, 0, 0);
+          htCtx.fill();
+
+          htCtx.restore();
+        }
+      }
+
+      // Animation loop
+      function loop() {
+        fwCtx.fillStyle = "rgba(0, 0, 0, 0.15)";
+        fwCtx.fillRect(0, 0, fw.width, fw.height);
+
+        htCtx.clearRect(0, 0, ht.width, ht.height);
+
+        // Update and draw fireworks
+        fireworks = fireworks.filter((f) => {
+          f.update();
+          f.draw();
+          return !f.boom;
+        });
+
+        // Update and draw particles
+        particles = particles.filter((p) => {
+          p.update();
+          p.draw();
+          return p.alpha > 0;
+        });
+
+        // Update and draw hearts
+        hearts = hearts.filter((h) => {
+          h.update();
+          h.draw();
+          return h.y > -150;
+        });
+
+        requestAnimationFrame(loop);
+      }
+
+      // Add a firework
+      function addFirework() {
+        const x = Math.random() * window.innerWidth;
+        fireworks.push(new Firework(x, window.innerHeight));
+      }
+
+      // Add a heart
+      function addHeart() {
+        hearts.push(new Heart());
+      }
+
+      // Create sparkle effects
+      function makeSparkles(x, y, count) {
+        for (let i = 0; i < count; i++) {
+          setTimeout(() => {
+            const s = document.createElement("div");
+            s.className = "sparkle";
+            s.style.left = x + (Math.random() - 0.5) * 500 + "px";
+            s.style.top = y + (Math.random() - 0.5) * 500 + "px";
+            document.body.appendChild(s);
+            setTimeout(() => s.remove(), 1500);
+          }, i * 25);
+        }
+      }
+
+      // Create floating emojis
+      function makeEmojis() {
+        const emojis = [
+          "🎉",
+          "🎊",
+          "🎂",
+          "🎈",
+          "🎁",
+          "✨",
+          "💖",
+          "🌟",
+          "🥳",
+          "🍰",
+          "🎀",
+          "💝",
+          "🎆",
+          "🎇",
+        ];
+        emojis.forEach((e, i) => {
+          setTimeout(() => {
+            const el = document.createElement("div");
+            el.className = "emoji-float";
+            el.textContent = e;
+            el.style.left = Math.random() * window.innerWidth + "px";
+            el.style.top =
+              window.innerHeight * 0.5 + Math.random() * 200 + "px";
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 3000);
+          }, i * 150);
+        });
+      }
+
+      // Open envelope function
+      function openEnvelope() {
+        if (isOpen) return;
+        isOpen = true;
+
+        const envelope = document.getElementById("envWrap");
+        envelope.classList.add("opened");
+        document.body.classList.add("blur-bg");
+
+        // Stop background effects
+        clearInterval(fireworkInterval);
+        clearInterval(heartInterval);
+
+        // Clear existing particles
+        fireworks = [];
+        particles = [];
+        hearts = [];
+
+        // MASSIVE fireworks celebration
+        for (let i = 0; i < 40; i++) {
+          setTimeout(() => addFirework(), i * 80);
+        }
+
+        // Additional effects
+        setTimeout(
+          () => makeSparkles(window.innerWidth / 2, window.innerHeight / 2, 80),
+          600
+        );
+        setTimeout(() => makeEmojis(), 1200);
+      }
+
+      // Initialize
+      function init() {
+        // Start animation loop
+        loop();
+
+        // Start background effects
+        fireworkInterval = setInterval(addFirework, 1300);
+        heartInterval = setInterval(addHeart, 150);
+
+        // Add click event
+        document
+          .getElementById("envWrap")
+          .addEventListener("click", openEnvelope);
+      }
+
+      // Start when page loads
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+      } else {
+        init();
+      }
+
+      // Handle window resize
+      window.addEventListener("resize", () => {
+        fw.width = window.innerWidth;
+        fw.height = window.innerHeight;
+        ht.width = window.innerWidth;
+        ht.height = window.innerHeight;
+      });
+    </script>
+  </body>
+</html>
